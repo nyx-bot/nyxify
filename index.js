@@ -16,7 +16,11 @@ app.get(`/avatars/nyxified/:id.png`, async (req, res) => {
     const id = Object.keys(images).find(k => k.startsWith(req.params.id))
     console.log(req.params.id, id)
     if(images[id]) {
-        res.send(images[id])
+        res.writeHead(200, {
+            "Content-Type": `image/png`,
+            "Content-Length": images[id].length,
+            "Content-disposition": `attachment;filename=${id}.png`
+        }); res.end(images[id])
     } else {
         res.status(404).send(null) // replace this if you wish; this is only null because nyx's webserver handles http codes other than 2XX
     }
