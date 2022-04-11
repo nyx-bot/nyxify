@@ -109,14 +109,6 @@ app.post(`/nyxify`, async (req, res) => {
                 })
             }
         })
-
-        res.send({
-            id,
-            url: `https://nyx.bot/api/image/${id}.${img.getExtension()}`
-        });
-        setTimeout(() => {
-            fs.unlinkSync(`/img/${id}.${img.getExtension()}`).catch()
-        }, 3600000)
     } else return res.send({error: `No URL or ID was included in the body!`})
 });
 
