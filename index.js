@@ -97,7 +97,7 @@ app.post(`/nyxify`, async (req, res) => {
     
                 superagent.post(`http://${config.cacheAPIEndpoint.location}:${config.cacheAPIEndpoint.port}/saveFile`)
                 .set(`auth`, config.cacheAPIEndpoint.authentication)
-                .send({ url: `http://${config.nyxify.location}:${config.nyxify.port}/image/${id}` })
+                .send({ url: `http://${config.nyxify.location}:${config.nyxify.port}/image/${id}.png` })
                 .then(r => {
                     res.send({
                         id,
