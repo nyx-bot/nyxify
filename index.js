@@ -22,6 +22,12 @@ app.get(`/avatars/nyxified/:id.png`, async (req, res) => {
     }
 })
 
+app.use((req, res, next) => {
+    if((req.headers.auth || req.headers.authorization || req.headers.token) == config.nyxify.authentication) {
+        next()
+    } else res.status(401).send(`Authorization key either not provided, or is invalid!`)
+})
+
 app.post(`/nyxify`, async (req, res) => {
     if(req.body && req.body.url && req.body.id) {
         const id = req.body.id + `-` + idGen(4)
