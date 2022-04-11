@@ -3,7 +3,8 @@ const express = require("express");
 const app = express();
 app.use(bodyParser.json());
 
-const idGen = require('./res/idGen')
+const idGen = require('./res/idGen');
+const lightOrDark = require('./res/lightOrDark');
 
 const config = require('./config.json')
 
