@@ -1,0 +1,12 @@
+{
+    "nyxify": {
+        "location": "{ server ip or domain that points to this nyxify instance }",
+        "port": 0,
+        "authentication": "{ the authentication key that accepts incoming requests -- use something like https://passwordsgenerator.net/ }"
+    },
+    "cacheAPIEndpoint": {
+        "location": "{ server ip or domain that points to your nyxcache instance }",
+        "port": 0,
+        "authentication": "{ the authentication key to your instance }"
+    }
+}
