@@ -134,7 +134,10 @@ app.post(`/nyxify`, async (req, res) => {
                     res.set(`Content-Type`, `image/png`).set(`Content-Length`, buffer.length).send(buffer)
                 } else superagent.post(`http://${config.cacheAPIEndpoint.location}:${config.cacheAPIEndpoint.port}/saveFile`)
                     .set(`auth`, config.cacheAPIEndpoint.authentication)
-                    .send({ url: `http://${config.nyxify.location}:${config.nyxify.port}/avatars/nyxified/${id}.png` })
+                    .send({ 
+                        url: `http://${config.nyxify.location}:${config.nyxify.port}/avatars/nyxified/${id}.png`,
+                        image: buffer
+                    })
                     .then(r => {
                         res.send({
                             id,
