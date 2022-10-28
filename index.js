@@ -10,6 +10,8 @@ const config = require('./config.json')
 
 const superagent = require('superagent')
 
+const jimp = require('jimp-native');
+
 let images = {};
 
 app.get(`/avatars/nyxified/:id.png`, async (req, res) => {
@@ -30,16 +32,37 @@ app.use((req, res, next) => {
     if((req.headers.auth || req.headers.authorization || req.headers.token) == config.nyxify.authentication) {
         next()
     } else res.status(401).send(`Authorization key either not provided, or is invalid!`)
-})
+});
+
+let jimpImages = {
+    overlay: `${__dirname}/nyxov-small.png`,
+    border: `${__dirname}/nyx-border.png`,
+    gradient: `${__dirname}/nyxgradient.png`
+}
 
 app.post(`/nyxify`, async (req, res) => {
+    const beforeRender = Date.now();
+
     if(req.body && req.body.url && req.body.id) {
         const id = req.body.id + `-` + idGen(4)
-        const jimp = require('jimp');
-        let imgurl = req.body.url
-        const img = await jimp.read(imgurl);
-        const overlay = await jimp.read(__dirname + `/nyxov-small.png`);
-        const border = await jimp.read(__dirname + `/nyx-border.png`)    
+        let imgurl = req.body.url;
+
+        let img, overlay, border;
+
+        await Promise.all([
+            new Promise(async res => {
+                img = await jimp.read((await superagent.get(imgurl)).body);
+                res()
+            }),
+            new Promise(async res => {
+                overlay = await jimpImages.overlay.clone();
+                res()
+            }),
+            new Promise(async res => {
+                border = await jimpImages.border.clone()
+                res() 
+            }),
+        ]);  
 
 
         // determine whether or not the majority of the picture is light or dark;
@@ -82,7 +105,7 @@ app.post(`/nyxify`, async (req, res) => {
 
         if(req.body.color === true) {
             console.log(`colorize - true`)
-            const gradient = await jimp.read(__dirname + `/nyxgradient.png`);
+            const gradient = await jimpImages.gradient.clone()
             img.composite(gradient, 0, 0, {
                 mode: jimp.BLEND_OVERLAY
             })
@@ -103,27 +126,38 @@ app.post(`/nyxify`, async (req, res) => {
                     url: null
                 }); console.error(e)
             } else {
+                console.log(`Took ${Date.now() - beforeRender}ms to render!`)
+
                 images[id] = buffer; setTimeout(() => {delete images[id]}, 30000);
     
-                superagent.post(`http://${config.cacheAPIEndpoint.location}:${config.cacheAPIEndpoint.port}/saveFile`)
-                .set(`auth`, config.cacheAPIEndpoint.authentication)
-                .send({ url: `http://${config.nyxify.location}:${config.nyxify.port}/avatars/nyxified/${id}.png` })
-                .then(r => {
-                    res.send({
-                        id,
-                        url: `https://cache.nyx.bot/nyxified/${id}`
+                if(req.body.image) {
+                    res.set(`Content-Type`, `image/png`).set(`Content-Length`, buffer.length).send(buffer)
+                } else superagent.post(`http://${config.cacheAPIEndpoint.location}:${config.cacheAPIEndpoint.port}/saveFile`)
+                    .set(`auth`, config.cacheAPIEndpoint.authentication)
+                    .send({ url: `http://${config.nyxify.location}:${config.nyxify.port}/avatars/nyxified/${id}.png` })
+                    .then(r => {
+                        res.send({
+                            id,
+                            url: `https://cache.nyx.bot/nyxified/${id}`
+                        })
+                    }).catch(e => {
+                        res.status(500).send({
+                            id,
+                            url: null
+                        }); console.error(e)
                     })
-                }).catch(e => {
-                    res.status(500).send({
-                        id,
-                        url: null
-                    }); console.error(e)
-                })
             }
         })
     } else return res.send({error: `No URL or ID was included in the body!`})
 });
 
-app.listen(config.nyxify.port, () => {
+Promise.all([
+    ...Object.keys(jimpImages).map(img => new Promise(async res => {
+        console.log(`Loading image "${img}" at ${jimpImages[img]}`);
+        jimpImages[img] = await jimp.read(jimpImages[img]);
+        console.log(`Successfully loaded "${img}!"`);
+        res(jimpImages[img])
+    }))
+]).then(() => app.listen(config.nyxify.port, () => {
     console.log(`nyxify is online!`)
-})
+}))
