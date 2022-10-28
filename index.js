@@ -128,16 +128,25 @@ app.post(`/nyxify`, async (req, res) => {
             } else {
                 console.log(`Took ${Date.now() - beforeRender}ms to render!`)
 
-                images[id] = buffer; setTimeout(() => {delete images[id]}, 30000);
+                let payload = { 
+                    url: `http://${config.nyxify.location}:${config.nyxify.port}/avatars/nyxified/${id}.png`,
+                }
+
+                const imageSize = Buffer.byteLength(buffer)*1e-6
+
+                if(imageSize < 15) {
+                    delete images[id];
+                    console.log(`Image is under 15mb! (${Math.round(imageSize*100)/100}mb)`)
+                    payload.image = buffer;
+                } else {
+                    images[id] = buffer; setTimeout(() => {delete images[id]}, 30000);
+                }
     
                 if(req.body.image) {
                     res.set(`Content-Type`, `image/png`).set(`Content-Length`, buffer.length).send(buffer)
                 } else superagent.post(`http://${config.cacheAPIEndpoint.location}:${config.cacheAPIEndpoint.port}/saveFile`)
                     .set(`auth`, config.cacheAPIEndpoint.authentication)
-                    .send({ 
-                        url: `http://${config.nyxify.location}:${config.nyxify.port}/avatars/nyxified/${id}.png`,
-                        image: buffer
-                    })
+                    .send(payload)
                     .then(r => {
                         res.send({
                             id,
@@ -147,7 +156,10 @@ app.post(`/nyxify`, async (req, res) => {
                         res.status(500).send({
                             id,
                             url: null
-                        }); console.error(e)
+                        }); 
+                        if(`${e}`.toLowerCase().includes(`too large`)) {
+                            console.error(`Cache server reported file too large! (${Buffer.byteLength(buffer)*1e-6}mb)`)
+                        } else console.error(e)
                     })
             }
         })
